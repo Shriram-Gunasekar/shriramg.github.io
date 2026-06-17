@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Reading Shelf — A Personal Library Catalog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #ECE1C2;
+    --paper-deep: #E0D2A6;
+    --ink: #2A2117;
+    --ink-soft: #564A38;
+    --green: #2F4538;
+    --green-deep: #1C2A22;
+    --brass: #B6862E;
+    --brass-light: #E0B45A;
+    --stamp: #7A2A2A;
+    --card: #FBF7E9;
+    --card-line: #CABB8E;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      radial-gradient(rgba(0,0,0,0.025) 1px, transparent 1px);
+    background-size:3px 3px;
+    color:var(--ink);
+    font-family:'Source Serif 4', serif;
+  }
+
+  a{color:inherit;}
+
+  /* ---------- HEADER ---------- */
+  header.catalog-header{
+    position:relative;
+    background:linear-gradient(180deg, var(--green) 0%, var(--green-deep) 100%);
+    color:var(--paper);
+    padding:56px 24px 40px;
+    overflow:hidden;
+  }
+  header.catalog-header::before{
+    content:"";
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(115deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 2px, transparent 2px, transparent 9px);
+    pointer-events:none;
+  }
+  .header-inner{
+    position:relative;
+    max-width:880px;
+    margin:0 auto;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.74rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--brass-light);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow svg{flex-shrink:0;}
+  h1{
+    font-family:'Fraunces', serif;
+    font-optical-sizing:auto;
+    font-weight:700;
+    font-size:clamp(2.4rem, 6vw, 4rem);
+    line-height:1.02;
+    margin:14px 0 12px;
+    letter-spacing:-0.01em;
+  }
+  .lede{
+    font-size:1.05rem;
+    color:#DCD3B8;
+    max-width:560px;
+    line-height:1.55;
+    margin:0 0 28px;
+  }
+
+  .stats{
+    display:flex;
+    flex-wrap:wrap;
+    gap:32px;
+    padding-top:24px;
+    border-top:1px solid rgba(224,180,90,0.3);
+  }
+  .stat .num{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    font-size:1.7rem;
+    color:var(--brass-light);
+    line-height:1;
+  }
+  .stat .label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.66rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:#B9AE8C;
+    margin-top:4px;
+  }
+
+  /* ---------- CONTROLS ---------- */
+  .controls{
+    max-width:1080px;
+    margin:0 auto;
+    padding:32px 24px 0;
+  }
+  .search-row{
+    margin-bottom:22px;
+  }
+  .search-row label{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:.68rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  #search{
+    width:100%;
+    max-width:420px;
+    font-family:'Source Serif 4', serif;
+    font-style:italic;
+    font-size:1rem;
+    color:var(--ink);
+    background:transparent;
+    border:none;
+    border-bottom:1.5px dashed var(--card-line);
+    padding:6px 2px 10px;
+    outline:none;
+  }
+  #search:focus-visible, #search:focus{
+    border-bottom-color:var(--brass);
+  }
+  #search::placeholder{color:#9A8C68;}
+
+  .tabs{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:0;
+    scrollbar-width:thin;
+  }
+  .tab{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.72rem;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:11px 16px;
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-bottom:none;
+    border-radius:5px 5px 0 0;
+    color:var(--ink-soft);
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .15s, color .15s;
+  }
+  .tab .count{opacity:.6; margin-left:5px;}
+  .tab:hover{background:#FFFDF4;}
+  .tab.active{
+    background:var(--green);
+    color:var(--paper);
+    border-color:var(--green-deep);
+  }
+  .tab:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
+
+  /* ---------- GRID ---------- */
+  .shelf{
+    max-width:1080px;
+    margin:0 auto;
+    padding:18px 24px 70px;
+    border-top:3px solid var(--green);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));
+    gap:20px;
+    padding-top:24px;
+  }
+
+  .card{
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-radius:3px;
+    padding:30px 18px 18px;
+    box-shadow:0 1px 2px rgba(42,33,23,0.08);
+    transition:transform .18s ease, box-shadow .18s ease;
+    animation:cardIn .45s ease backwards;
+  }
+  .card:hover{
+    transform:translateY(-4px) rotate(-0.3deg);
+    box-shadow:0 10px 18px rgba(42,33,23,0.16);
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    top:11px; left:50%;
+    transform:translateX(-50%);
+    width:13px; height:13px;
+    border-radius:50%;
+    background:var(--paper);
+    box-shadow:inset 0 2px 3px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .card .num{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.68rem;
+    color:var(--brass);
+    letter-spacing:.04em;
+  }
+  .card .stamp{
+    position:absolute;
+    top:16px; right:14px;
+    border:1.5px solid var(--stamp);
+    color:var(--stamp);
+    font-family:'JetBrains Mono', monospace;
+    font-size:.58rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    padding:3px 6px;
+    border-radius:3px;
+    transform:rotate(-6deg);
+    opacity:.82;
+  }
+  .card h3{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:1.08rem;
+    line-height:1.28;
+    margin:18px 0 6px;
+    color:var(--ink);
+  }
+  .card .author{
+    font-style:italic;
+    color:var(--ink-soft);
+    font-size:.92rem;
+  }
+  .card .divider{
+    border-top:1px dashed var(--card-line);
+    margin:14px 0 8px;
+  }
+  .card .cat{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.6rem;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:#A99B78;
+  }
+
+  @keyframes cardIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  .empty{
+    grid-column:1/-1;
+    text-align:center;
+    padding:50px 20px;
+    color:var(--ink-soft);
+    font-family:'JetBrains Mono', monospace;
+    font-size:.85rem;
+    letter-spacing:.04em;
+  }
+
+  footer{
+    text-align:center;
+    padding:30px 24px 50px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:.72rem;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+
+  @media (max-width:480px){
+    .stats{gap:22px;}
+    .grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header class="catalog-header">
+  <div class="header-inner">
+    <div class="eyebrow">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="6" y="7" width="4" height="2" rx="1" fill="currentColor"/></svg>
+      Personal Library Catalog
+    </div>
+    <h1>The Reading Shelf</h1>
+    <p class="lede">Every drawer here holds a different kind of story — gods and tricksters, spies and detectives, school anthologies, and a few books that surprised me. Pull a tab below to open a drawer.</p>
+    <div class="stats">
+      <div class="stat"><div class="num" id="stat-total">0</div><div class="label">Cards Filed</div></div>
+      <div class="stat"><div class="num" id="stat-cats">0</div><div class="label">Drawers</div></div>
+      <div class="stat"><div class="num" id="stat-authors">0</div><div class="label">Authors</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="search-row">
+    <label for="search">Call slip — search by title or author</label>
+    <input id="search" type="text" placeholder="e.g. Wilde, or Argonauts…" autocomplete="off">
+  </div>
+  <div class="tabs" id="tabs"></div>
+</div>
+
+<main class="shelf">
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>Catalog compiled by hand · filed under fiction, folklore, and a few stolen study-hall hours</footer>
+
+<script>
+const books = [
+  {title:"Rick Riordan's Series (Percy Jackson & beyond)", author:"Rick Riordan", category:"Fantasy & Magical Worlds"},
+  {title:"The Lord of the Rings", author:"J.R.R. Tolkien", category:"Fantasy & Magical Worlds"},
+  {title:"The Wonderful Wizard of Oz", author:"L. Frank Baum", category:"Fantasy & Magical Worlds"},
+  {title:"Alice's Adventures in Wonderland", author:"Lewis Carroll", category:"Fantasy & Magical Worlds"},
+  {title:"City of Bones", author:"Cassandra Clare", category:"Fantasy & Magical Worlds"},
+  {title:"The Shiva Trilogy", author:"Amish Tripathi", category:"Fantasy & Magical Worlds"},
+  {title:"The Legend of King Arthur (to Mordred & Guinevere)", author:"Traditional", category:"Fantasy & Magical Worlds"},
+
+  {title:"Treasure Island", author:"Robert Louis Stevenson", category:"Classic Adventure & Voyages"},
+  {title:"Moby-Dick", author:"Herman Melville", category:"Classic Adventure & Voyages"},
+  {title:"Gulliver's Travels", author:"Jonathan Swift", category:"Classic Adventure & Voyages"},
+  {title:"Around the World in Eighty Days", author:"Jules Verne", category:"Classic Adventure & Voyages"},
+  {title:"Black Beauty", author:"Anna Sewell", category:"Classic Adventure & Voyages"},
+  {title:"Oliver Twist", author:"Charles Dickens", category:"Classic Adventure & Voyages"},
+  {title:"The Adventures of Pinocchio", author:"Carlo Collodi", category:"Classic Adventure & Voyages"},
+  {title:"The Canterville Ghost", author:"Oscar Wilde", category:"Classic Adventure & Voyages"},
+  {title:"The Happy Prince", author:"Oscar Wilde", category:"Classic Adventure & Voyages"},
+
+  {title:"Panchatantra & Jataka Tales", author:"Traditional", category:"Mythology & Folklore"},
+  {title:"The Mahabharata", author:"Traditional", category:"Mythology & Folklore"},
+  {title:"The Ramayana", author:"Traditional", category:"Mythology & Folklore"},
+  {title:"Tales of Troy", author:"Traditional retellings", category:"Mythology & Folklore"},
+  {title:"Jason and the Argonauts", author:"Greek mythology", category:"Mythology & Folklore"},
+  {title:"The Odyssey", author:"Homer", category:"Mythology & Folklore"},
+  {title:"Aesop's Fables", author:"Aesop", category:"Mythology & Folklore"},
+  {title:"Tenali Raman & Akbar–Birbal Stories", author:"Traditional", category:"Mythology & Folklore"},
+
+  {title:"Inferno", author:"Dan Brown", category:"Thriller & Mystery"},
+  {title:"Whiteout", author:"Ken Follett", category:"Thriller & Mystery"},
+  {title:"Miracle Cure", author:"Michael Palmer", category:"Thriller & Mystery"},
+  {title:"The Innocent Man", author:"John Grisham", category:"Thriller & Mystery"},
+  {title:"Splinter Cell", author:"Tom Clancy", category:"Thriller & Mystery"},
+
+  {title:"Common Sense", author:"Thomas Paine", category:"Philosophy, Strategy & Ideas"},
+  {title:"The Art of War", author:"Sun Tzu", category:"Philosophy, Strategy & Ideas"},
+  {title:"The Alchemist", author:"Paulo Coelho", category:"Philosophy, Strategy & Ideas"},
+  {title:"Letters", author:"Franz Kafka", category:"Philosophy, Strategy & Ideas"},
+
+  {title:"One Night @ the Call Center", author:"Chetan Bhagat", category:"Contemporary Fiction"},
+  {title:"Palace of Varieties", author:"James Lear", category:"Contemporary Fiction"},
+  {title:"The Price of Dick", author:"Dan Skinner", category:"Contemporary Fiction"},
+  {title:"The Claiming of Sleeping Beauty", author:"A.N. Roquelaure (Anne Rice)", category:"Contemporary Fiction"},
+
+  {title:"The Two Gentlemen of Verona", author:"A.J. Cronin", category:"Schoolwork — English Literature"},
+  {title:"A Nice Cup of Tea", author:"George Orwell", category:"Schoolwork — English Literature"},
+  {title:"The Castle", author:"Edwin Muir", category:"Schoolwork — English Literature"},
+  {title:"God Sees the Truth but Waits", author:"Leo Tolstoy", category:"Schoolwork — English Literature"},
+  {title:"Our Casuarina Tree", author:"Toru Dutt", category:"Schoolwork — English Literature"},
+  {title:"In Celebration of Being Alive", author:"Christiaan Barnard", category:"Schoolwork — English Literature"},
+  {title:"All the World's a Stage", author:"William Shakespeare", category:"Schoolwork — English Literature"},
+  {title:"The Hour of Truth", author:"Percival Wilde", category:"Schoolwork — English Literature"},
+  {title:"Ulysses", author:"Alfred, Lord Tennyson", category:"Schoolwork — English Literature"},
+  {title:"The Midnight Visitor", author:"Robert Arthur", category:"Schoolwork — English Literature"},
+  {title:"A Father to His Son", author:"Carl Sandburg", category:"Schoolwork — English Literature"},
+  {title:"All Summer in a Day", author:"Ray Bradbury", category:"Schoolwork — English Literature"},
+  {title:"On the Rule of the Road", author:"A.G. Gardiner", category:"Schoolwork — English Literature"},
+  {title:"Incident of the French Camp", author:"Robert Browning", category:"Schoolwork — English Literature"},
+  {title:"Remember Caesar", author:"Gordon Daviot", category:"Schoolwork — English Literature"},
+  {title:"Once Upon a Time", author:"Gabriel Okara", category:"Schoolwork — English Literature"},
+  {title:"After Twenty Years", author:"O. Henry", category:"Schoolwork — English Literature"},
+  {title:"Confessions of a Born Spectator", author:"Ogden Nash", category:"Schoolwork — English Literature"},
+  {title:"A Shot in the Dark", author:"Saki (H.H. Munro)", category:"Schoolwork — English Literature"},
+  {title:"Forgetting", author:"Robert Lynd", category:"Schoolwork — English Literature"},
+  {title:"Lines Written in Early Spring", author:"William Wordsworth", category:"Schoolwork — English Literature"},
+  {title:"The First Patient", author:"C.V. Burgess", category:"Schoolwork — English Literature"},
+  {title:"Tight Corners", author:"E.V. Lucas", category:"Schoolwork — English Literature"},
+  {title:"Macavity: The Mystery Cat", author:"T.S. Eliot", category:"Schoolwork — English Literature"},
+  {title:"With the Photographer", author:"Stephen Leacock", category:"Schoolwork — English Literature"},
+  {title:"The Singing Lesson", author:"Katherine Mansfield", category:"Schoolwork — English Literature"},
+  {title:"The Accidental Tourist", author:"Bill Bryson", category:"Schoolwork — English Literature"},
+  {title:"The Hollow Crown", author:"William Shakespeare", category:"Schoolwork — English Literature"},
+  {title:"The Never-Never Nest", author:"Cedric Mount", category:"Schoolwork — English Literature"}
+];
+
+const stampLabel = {
+  "Fantasy & Magical Worlds":"Fantasy",
+  "Classic Adventure & Voyages":"Adventure",
+  "Mythology & Folklore":"Mythology",
+  "Thriller & Mystery":"Thriller",
+  "Philosophy, Strategy & Ideas":"Ideas",
+  "Contemporary Fiction":"Fiction",
+  "Schoolwork — English Literature":"Schoolwork"
+};
+
+let activeCat = "All";
+
+function init(){
+  document.getElementById('stat-total').textContent = books.length;
+  const cats = [...new Set(books.map(b=>b.category))];
+  document.getElementById('stat-cats').textContent = cats.length;
+  document.getElementById('stat-authors').textContent = new Set(books.map(b=>b.author)).size;
+
+  const tabs = document.getElementById('tabs');
+  const allCounts = [["All", books.length], ...cats.map(c => [c, books.filter(b=>b.category===c).length])];
+  tabs.innerHTML = allCounts.map(([c,n]) =>
+    `<button class="tab${c==='All' ? ' active' : ''}" data-cat="${c}">${c}<span class="count">(${n})</span></button>`
+  ).join('');
+
+  tabs.addEventListener('click', e=>{
+    const btn = e.target.closest('.tab');
+    if(!btn) return;
+    activeCat = btn.dataset.cat;
+    [...tabs.children].forEach(t=>t.classList.toggle('active', t===btn));
+    render();
+  });
+
+  document.getElementById('search').addEventListener('input', render);
+  render();
+}
+
+function render(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const grid = document.getElementById('grid');
+  const filtered = books.filter(b=>{
+    const inCat = activeCat==="All" || b.category===activeCat;
+    const inSearch = !q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q);
+    return inCat && inSearch;
+  });
+
+  if(filtered.length===0){
+    grid.innerHTML = `<div class="empty">No cards match that search. Try another title or author.</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map((b, i) => `
+    <div class="card" style="animation-delay:${Math.min(i*0.02, 0.4)}s">
+      <div class="num">No. ${String(i+1).padStart(3,'0')}</div>
+      <div class="stamp">${stampLabel[b.category]}</div>
+      <h3>${b.title}</h3>
+      <div class="author">${b.author}</div>
+      <div class="divider"></div>
+      <div class="cat">${b.category}</div>
+    </div>
+  `).join('');
+}
+
+init();
+</script>
+
+</body>
+</html>
